@@ -130,7 +130,7 @@
     bind:this={canvas}
     ></canvas>
   <p>
-    Sergey Larionov
+    <a href="https://gitlab.com/sergey-larionov/grass">gitlab.com/sergey-larionov/grass</a>
   </p>
 
 </main>
@@ -149,11 +149,17 @@
   }
 
 	h1 {
-		  color: #ff3e00;
+		  color: #a7a9c8;
 		  text-transform: uppercase;
 		  font-size: 4em;
 		  font-weight: 100;
 	}
+
+  a {
+		  font-size: 1em;
+      color: #f5f5f5;
+		  font-weight: 100;
+  }
 
 	@media (min-width: 640px) {
 		  main {
