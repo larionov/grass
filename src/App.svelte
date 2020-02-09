@@ -1,11 +1,34 @@
 <script>
 	export let name;
-  let canvas, ctx;
+  let canvas, ctx, w_width;
   import { Random, MersenneTwister19937 } from 'random-js';
-  import Noise from './perlin-noise.js';
-  const random = new Random(MersenneTwister19937.autoSeed());
+  import sha256 from 'tiny-sha256';
 
-  let colorScale = random.integer(1, 1000);
+  import Noise from './perlin-noise.js';
+
+  let seed = window && window.location.hash ? window.location.hash.replace('#', '') : sha256(new Date());
+
+  let random;
+
+  function parseHexString(str) {
+      var result = [];
+      while (str.length >= 8) {
+          result.push(parseInt(str.substring(0, 8), 16));
+
+          str = str.substring(8, str.length);
+      }
+    return result;
+  }
+
+  function setupCanvas(canvas) {
+      let dpr = window.devicePixelRatio || 1;
+      console.log(dpr);
+      let rect = canvas.getBoundingClientRect();
+
+      canvas.width = 1500 *dpr;//rect.width * dpr;
+      canvas.height = 1500 * dpr;//rect.height * dpr;
+      canvas.getContext('2d').scale(dpr*2, dpr*2);
+  }
 
   function pickColorFromPallete(index) {
       const pallete = [
@@ -27,27 +50,15 @@
       }
       return pallete[0][1];
   }
-  Noise.seed(random.integer(1, 1000000000));
 
-  let width = 1000;
-  let height = 1000;
-  let num_steps = random.integer(5, 20);
-  let step_length = random.integer(5, 30);
 
-  let left_x = Math.floor(width * -0.5)
-  let right_x = Math.floor(width * 1.5)
-  let top_y = Math.floor(height * -0.5)
-  let bottom_y = Math.floor(height * 1.5)
-  let resolution = Math.floor(width * 0.01)
-  let num_columns = (right_x - left_x) / resolution
-  let num_rows = (bottom_y - top_y) / resolution
 
   function map_range(value, low1, high1, low2, high2) {
     return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
   }
 
   // NOT USED
-  function generateCircleGrid() {
+  function generateCircleGrid({num_rows, num_columns}) {
       let grid = [];
       let default_angle = Math.PI * 0.25
       for (let column =0; column < num_columns; column++) {
@@ -60,7 +71,7 @@
       return grid;
   }
 
-  function generateNoiseGrid() {
+  function generateNoiseGrid({random, num_rows, num_columns}) {
       let grid = [];
       const scale = random.real(0.001, 0.02);
       for (let column =0; column < num_columns; column++) {
@@ -81,7 +92,7 @@
   }
 
 
-  function drawCurve({ctx, grid, startX, startY}) {
+  function drawCurve({ctx, grid, startX, startY, colorScale, num_steps, resolution, left_x, top_y, step_length}) {
       let x = startX;
       let y = startY;
 
@@ -102,15 +113,38 @@
 //          console.log(x,y);
       }
       ctx.strokeStyle = pickColorFromPallete(Noise.perlin2(x/ colorScale, y / colorScale));
+
       ctx.stroke();
   }
 
-  function render(ctx) {
-      let grid = generateNoiseGrid();
-      for (let i = 0; i < 10000; i++) {
+  function render(ctx, seed) {
+      let width = 1000;
+      let height = 1000;
+      let num_steps;// = random.integer(5, 20);
+      let step_length;// = random.integer(5, 30);
+
+      let left_x = Math.floor(width * -0.5)
+      let right_x = Math.floor(width * 1.5)
+      let top_y = Math.floor(height * -0.5)
+      let bottom_y = Math.floor(height * 1.5)
+      let resolution = Math.floor(width * 0.01)
+      let num_columns = (right_x - left_x) / resolution
+      let num_rows = (bottom_y - top_y) / resolution
+
+      random = new Random(MersenneTwister19937.seedWithArray(parseHexString(seed)));
+      let colorScale = random.integer(1, 1000);
+
+      Noise.seed(random.integer(1, 1000000000));
+
+      num_steps = random.integer(5, 20);
+      step_length = random.integer(5, 30);
+
+      let grid = generateNoiseGrid({ random, num_rows, num_columns });
+      let num_lines = random.integer(5000, 20000)
+      for (let i = 0; i < num_lines; i++) {
           const x = random.integer(0, width);
           const y = random.integer(0, height);
-          drawCurve({ctx, grid, startX: x, startY: y});
+          drawCurve({ctx, grid, startX: x, startY: y, colorScale, num_steps, resolution, left_x, top_y, step_length});
       }
 
   }
@@ -118,52 +152,72 @@
   function handleClick(e) {
   }
 
-  $: if(canvas) { render(canvas.getContext('2d')) };
+  $: if(canvas) {
+      setupCanvas(canvas);
+      render(canvas.getContext('2d'), seed)
+  };
+  $: if(canvas && w_width) {
+      console.log(w_width);
+      setupCanvas(canvas);
+      render(canvas.getContext('2d'), seed)
+  }
 </script>
 
+<svelte:window bind:innerWidth={w_width} />
 <main>
-	<h1>GRASS</h1>
+	<h1><a href="/">GRASS</a></h1>
   <canvas
     on:click={handleClick}
-    width="1000"
-    height="1000"
     bind:this={canvas}
     ></canvas>
   <p>
+    <a href={`#${seed}`}>{seed}</a>
+  </p>
+  <p>
     <a href="https://gitlab.com/sergey-larionov/grass">gitlab.com/sergey-larionov/grass</a>
   </p>
-
 </main>
 
 <style>
 	main {
-      background: black;
 		  text-align: center;
 		  padding: 1em;
-		  max-width: 240px;
+		  max-width: 100vw;
+      min-width: 320px;
 	}
   canvas {
-      width: 1000px;
-      height: 1000px;
+      width: calc(100vw - 3em);
+      height: calc(100vw - 3em);
+      min-width: min(1000px, calc(100vw - 3em));
+      min-height: min(1000px, calc(100vw - 3em));
+      max-height: 1000px;
 		  margin: 0 auto;
   }
-
-	h1 {
-		  color: #a7a9c8;
-		  text-transform: uppercase;
-		  font-size: 4em;
-		  font-weight: 100;
-	}
-
   a {
-		  font-size: 1em;
-      color: #f5f5f5;
+		  font-size: 0.5em;
+      color:  darkgray;/*#f5f5f5;*/
 		  font-weight: 100;
   }
+	h1  a {
+		  color:#a7a9c8;
+		  text-transform: uppercase;
+		  font-size: 2em;
+		  font-weight: 100;
+      text-decoration: none;
+	}
 
-	@media (min-width: 640px) {
-		  main {
-			    max-width: none;
+  p {
+      margin: 0;
+  }
+
+
+
+	@media (min-width: 1000px) {
+      a {
+		      font-size: 1em;
+      }
+		  canvas {
+			    width: 1000px;
 		  }
 	}
 </style>
