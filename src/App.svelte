@@ -150,6 +150,11 @@
   }
 
   function handleClick(e) {
+      let ctx = canvas.getContext('2d');
+      seed = sha256(new Date());
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      render(ctx, seed)
   }
 
   $: if(canvas) {
@@ -168,6 +173,7 @@
 	<h1><a href="/">GRASS</a></h1>
   <canvas
     on:click={handleClick}
+    on:touchend={handleClick}
     bind:this={canvas}
     ></canvas>
   <p>
@@ -194,7 +200,7 @@
 		  margin: 0 auto;
   }
   a {
-		  font-size: 0.5em;
+		  font-size: 0.7em;
       color:  darkgray;/*#f5f5f5;*/
 		  font-weight: 100;
   }
