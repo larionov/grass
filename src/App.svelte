@@ -172,8 +172,6 @@
 <main>
 	<h1><a href="/">GRASS</a></h1>
   <canvas
-    on:click={handleClick}
-    on:touchend={handleClick}
     bind:this={canvas}
     ></canvas>
   <p>
